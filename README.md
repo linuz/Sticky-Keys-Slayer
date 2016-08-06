@@ -1,8 +1,9 @@
 # Sticky-Keys-Slayer
 Scans for accessibility tools backdoors via RDP
 
-**Twitter: [@DennisMald](https://twitter.com/DennisMald)
-**Twitter: [@notmedic](https://twitter.com/notmedic)
+**Twitter: [@DennisMald](https://twitter.com/DennisMald)**
+
+**Twitter: [@notmedic](https://twitter.com/notmedic)**
 
 stickyKeysSlayer.sh
 ----------------

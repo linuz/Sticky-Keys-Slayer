@@ -18,7 +18,9 @@ Dependencies:
 * bc
 
 All packages exist in the Kali repositories:
+
     apt-get update
+    
     apt-get -y install imagemagick xdotool parallel bc
 	
 	

@@ -30,6 +30,6 @@ All packages exist in the Kali repositories:
 To Do:
 ----------------
 * Detection of missed boxes (boxes to which we do not obtain a screenshot)
-* Sort and unique the list, or tell people to do so
 * Handle scenario when more than one window is found to share the same title. Perhaps quit if wc -l > 1 for xdotool search.
 * Detect if black pixels are greater than 480,000. Means title bar went away. Possibly error out and move on
+* Fix bug when scanning hosts with a specified port. (Ex: 192.168.0.2:34123)

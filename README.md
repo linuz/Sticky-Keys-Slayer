@@ -12,7 +12,9 @@ Establishes a Remote Destop session (RDP) with the specified hosts and sends key
 stickyKeysSlayer.sh incorporates code from Zach Grace's [sticky_keys_hunter](https://github.com/ztgrace/sticky_keys_hunter/)
 
 DEFCON24 Presentation Slides: [http://www.slideshare.net/DennisMaldonado5/sticky-keys-to-the-kingdom](http://www.slideshare.net/DennisMaldonado5/sticky-keys-to-the-kingdom)
+
 Video demo of stickyKeysSlayer can be found here: [https://www.youtube.com/watch?v=Jy4hg4a1FYI](https://www.youtube.com/watch?v=Jy4hg4a1FYI)
+
 Dependencies:
 ----------------
 * imagemagick

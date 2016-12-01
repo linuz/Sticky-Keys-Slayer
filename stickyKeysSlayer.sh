@@ -188,7 +188,7 @@ function sendKeyStrokes {
 	echoOutput "Attempting to trigger utilman.exe backdoor"
 	xdotool key --window "$targetWindow" super+u
 	echoOutput "Attempting to trigger sethc.exe backdoor"
-	xdotool key --window "$targetWindow" shift shift shift shift shift
+	xdotool key --window "$targetWindow" shift shift shift shift shift shift
 	#echoOutput "Attempting to trigger magnifier.exe backdoor"
 	#xdotool key --window $targetWindow super+equal
 	#xdotool key --window $targetWindow super+minus
@@ -216,6 +216,8 @@ function scanHost {
 	while true; do
 		isAlive $pid
 		isTimedOut $timer
+		# Adding an option of ports in HOST variable, like 1.1.1.1:3390
+		HOST=$(echo $HOST|cut -d':' -f1)
 		WindowID=$(xdotool search --name "^rdesktop - $HOST$" 2> /dev/null)
 		if [ $? = 0 ]; then
 			WindowID=$(echo "$WindowID" | head -n 1)

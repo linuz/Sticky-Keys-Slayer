@@ -188,7 +188,7 @@ function sendKeyStrokes {
 	echoOutput "Attempting to trigger utilman.exe backdoor"
 	xdotool key --window "$targetWindow" super+u
 	echoOutput "Attempting to trigger sethc.exe backdoor"
-	xdotool key --window "$targetWindow" shift shift shift shift shift shift
+	xdotool key --window "$targetWindow" shift shift shift shift shift
 	#echoOutput "Attempting to trigger magnifier.exe backdoor"
 	#xdotool key --window $targetWindow super+equal
 	#xdotool key --window $targetWindow super+minus

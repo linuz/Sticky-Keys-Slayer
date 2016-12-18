@@ -31,10 +31,12 @@
 #	xdotool
 #	parallel
 #	bc
+#       python-numpy
+#       python-opencv
 #
 # All packages exist in the Kali repositories:
 #	apt-get update
-# 	apt-get -y install imagemagick xdotool parallel bc
+# 	apt-get -y install imagemagick xdotool parallel bc python-numpy python-opencv
 #
 # Description
 #	Establishes a Remote Destop session (RDP) with the specified hosts and sends key presses
@@ -54,14 +56,28 @@ TIMEOUT=30
 VERBOSE=0
 SCREENSHOT_FOLDER="rdp-screenshots"
 DISCOVERED_FOLDER="discovered"
+BYPASSCNT=0
+
+# Find out script's working directory
+WORKDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Check if script is a symlink
+if [ -L "$0" ]; then
+   WORKDIR="$(dirname "$(readlink -f "$0")")"
+fi
+
+TEMPLATEDIR="$WORKDIR/templates/"
 
 # Timing settings. Not necessary to modify
 TIMEOUT_STEP=1
 BACKDOOR_WAIT_TIME=2
 
+# Trap ctrl-c and call control_c()
+trap control_c INT
+
 function control_c {
 	killall rdesktop
 	echo "Interrupt detected. Killing all rdesktop processes"
+	exit 0
 }
 
 function currentDateTime {
@@ -69,26 +85,26 @@ function currentDateTime {
 }
 
 function echoOutput {
-	echo -e "$(currentDateTime) $HOST \e[34m[*]\e[0m $1"
+	echo -e "$(currentDateTime) $CNT $HOST \e[34m[*]\e[0m $1"
 }
 
 function echoVerbose {
 	if [ $VERBOSE -eq 1 ]; then
-		echo -e "$(currentDateTime) $HOST \e[33m[v]\e[0m $1"
+		echo -e "$(currentDateTime) $CNT $HOST \e[33m[v]\e[0m $1"
 	fi
 }
 
 function echoError {
-	echo -e "$(currentDateTime) $HOST \e[31m[!]\e[0m $1"
+	echo -e "$(currentDateTime) $CNT $HOST \e[31m[!]\e[0m $1"
 }
 
 function echoSuccess {
-	echo -e "$(currentDateTime) $HOST \e[32m[*]\e[0m $1"
+	echo -e "$(currentDateTime) $CNT $HOST \e[32m[*]\e[0m $1"
 }
 
 function echoHelp {
 	echo -e ""
-    echo -e "Usage: $0 [-v] [-t timeout_in_seconds] [-j num_of_jobs] [-o output_folder] <Host/IP/filename>"
+    echo -e "Usage: $0 [-v] [-t timeout_in_seconds] [-s skip_num] [-j num_of_jobs] [-o output_folder] <Host/IP/filename>"
 	echo -e ""
 	echo -e "Establishes a Remote Destop session (RDP) with the specified hosts and sends key presses to launch the accessibility tools within the Windows Login screen. stickyKeysSlayer.sh will analyze the console and alert if a command prompt window opens up. Screenshots will be put into a folder ('./rdp-screenshots' by default) and screenshots with a cmd.exe window are put in a subfolder ('./rdp-screenshots/discovered' by default). stickyKeysSlayer.sh accepts a single host or a list of hosts, delimited by line and works with multiple hosts in parallel."
 	echo -e ""
@@ -98,7 +114,8 @@ function echoHelp {
 	echo -e "Voluntary arguments"
 	echo -e "\t-v \t Verbose. Provide more verbose messages. DEFAULT = disabled"
 	echo -e "\t-t \t Timeout. Number of seconds to wait before killing the RDP session. DEFAULT = 30"
-	echo -e "\t-j \t Jobs. Number of jobs to spawn. DEFAULT = 1"
+        echo -e "\t-j \t Jobs. Number of jobs to spawn. DEFAULT = 1"
+	echo -e "\t-s \t Skip N hosts in provided file"
 	echo -e "\t-o \t Output folder. Specify the folder to store the screenshots. If the folder does not exist, one will be created. DEFAULT = ./rdp-screenshots"
 	echo -e "\t-h \t Help message. You are reading it"
 	echo -e ""
@@ -188,7 +205,8 @@ function sendKeyStrokes {
 	echoOutput "Attempting to trigger utilman.exe backdoor"
 	xdotool key --window "$targetWindow" super+u
 	echoOutput "Attempting to trigger sethc.exe backdoor"
-	xdotool key --window "$targetWindow" shift shift shift shift shift
+	# 6 shift presses fixed some timing issues
+	xdotool key --window "$targetWindow" shift shift shift shift shift shift
 	#echoOutput "Attempting to trigger magnifier.exe backdoor"
 	#xdotool key --window $targetWindow super+equal
 	#xdotool key --window $targetWindow super+minus
@@ -203,10 +221,44 @@ function makeFolder {
 	fi
 }
 
+# Analyze Remote Desktop via pattern matching, find unusual behaviour.
+# Patterns and Templates can be modified in /patterns/ and /templates/ directories
+function analyzeDesktop {
+        echoOutput "Attempting to identify OS Version and unusual behaviour"
+        # Call for external script that will identify OS with .png files in /patterns/ directory
+        WINVER=$("$WORKDIR/detect-windows.py" "$afterScreenshot")
+        if [[ ! "$WINVER" == "other" ]]; then
+                echoOutput "OS Detected: $(echo $WINVER | cut -d' ' -f1,2|tr '_' ' ')"
+                for i in $(ls $TEMPLATEDIR/*.png | grep -i $WINVER); do
+
+                         TEMPLATENAME=$(basename $i | cut -d'_' -f1,2 | sed 's/_/-/g' )
+                         a=$(compare -metric RMSE $i $2 /dev/null 2>&1 | cut -d' ' -f1|cut -d'.' -f1)
+                         if [[ ! $a -gt 18000 ]]; then 
+                                  echoVerbose "Screenshot matched 'regular' pattern"
+                                  makeFolder "$SCREENSHOT_FOLDER/not-interesting"
+                                  mv "$afterScreenshot" "$SCREENSHOT_FOLDER"/not-interesting/"$WINVER".$HOST.png
+                                  echoVerbose "Screenshot saved to $SCREENSHOT_FOLDER/not-interesting/$WINVER"."$HOST.png"
+                                  REGULAR=true
+                                  break
+                         fi
+                done        
+                if [ ! "$REGULAR" = true ]; then
+                         echoVerbose 'Screenshot should be reviewed manually or template missing'
+                fi
+        fi
+
+}
+
+
 function scanHost {
 	# Launch rdesktop in the background
 	echoOutput "Initiating rdesktop connection"
-	rdesktop -u "" -a 16 $HOST 2>/dev/null & 
+	# -x m  >> modem connection behaviour
+	# -z    >> enable rdp compression
+	# -a 16 >> 16 bit color depth (faster)
+	# -n "" >> pass empty hostname
+	# -T    >> set title
+	rdesktop -x m -z -n "" -T "rdesktop - $HOST" -u "" -a 16 $HOST 2>/dev/null & 
 	pid=$!
 
 	# Get the rdesktop Window ID by it's Window Title
@@ -248,11 +300,12 @@ function scanHost {
 	while true; do
 		isAlive $pid
 		isTimedOut $timer
-	   # Screenshot the window and if the only one color is returned (black), give it chance to finish loading
+                # Screenshot the window and if the only one color is returned (black), give it chance to finish loading
 		screenshot "$temp" "$WindowID"
 		testBlack "$temp" consoleLoadedCheck
 		echoVerbose "[DEBUG] ConsoleLoadedCheck = $consoleLoadedCheck"
-		if [ $consoleLoadedCheck -lt 400000 ]; then
+		# Maximum loaded console was found at 413000 threshold. When fully black ~ 500000
+		if [ $consoleLoadedCheck -lt 415000 ]; then
 			echoOutput "Console Loaded"
 			# Sleep a few seconds to allow the console to fully load
 			sleep 3.0
@@ -293,7 +346,9 @@ function scanHost {
 		mv $afterScreenshot "$SCREENSHOT_FOLDER/$DISCOVERED_FOLDER/"
 		echoOutput "Moved screenshot to $SCREENSHOT_FOLDER/$DISCOVERED_FOLDER/"
 	else
-		echoOutput "Screenshot does not appear to show a command prompt."
+                echoOutput "Screenshot does not appear to show a command prompt."
+		# Analyze desktop via pattern matching (0.7 seconds latency on Intel i5)
+		analyzeDesktop
 	fi
 
 	# Close the rdesktop window after everything has finished
@@ -302,7 +357,7 @@ function scanHost {
 
 export DISPLAY=:0
 OPTIND=1
-while getopts ":vj:t:o:h" opt; do
+while getopts ":vj:t:o:hs:" opt; do
 	case $opt in
 		v)
 			echoVerbose "Verbose mode activated"
@@ -337,6 +392,13 @@ while getopts ":vj:t:o:h" opt; do
 		h)
 			echoHelp
 			;;
+		s)
+			# Bypass X hosts in provided file.
+			if [ $OPTARG -eq $OPTARG 2> /dev/null ]; then
+				BYPASSCNT=$OPTARG
+				echo "$BYPASSCNT" > /tmp/cntbypass
+			fi
+			;;
 		:)
 			echoError "Missing argument"
 			echoHelp
@@ -364,14 +426,24 @@ fi
 
 # Check if this script was called from within parallel
 if [[ $(ps -o args= $PPID) == *"parallel"*"$0"* ]]; then
-	scanHost
+        # Restore bypass number for processes executed by parallel
+	BYPASSCNT=`cat /tmp/cntbypass`
+	# Restore filename for processes executed by parallel
+	CNT=`awk "/$HOST/{ print NR; exit }" $(cat /tmp/file_input)`
+	if [[ $CNT -gt $BYPASSCNT ]]; then
+		scanHost
+	fi
 	exit 0
 fi
 
 # Run with parallel if file is specified instead of host
 if [ -f "$HOST" ]; then
+        # Store filename for processes executed by parallel
+	echo "$HOST" > /tmp/file_input
+        # Store bypass number for processes executed by parallel
+	echo 0 > /tmp/cntbypass
 	echoOutput "Supplied host is a file, parallelizing across $PROCESSES processes"
-	parallel --no-notice -P $PROCESSES $0 ${@:1:$#-1} < $HOST
+	parallel -P $PROCESSES $0 ${@:1:$#-1} < $HOST
 	exit 0
 
 # If host is specified, run normally

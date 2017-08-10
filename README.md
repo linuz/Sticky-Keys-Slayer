@@ -15,7 +15,6 @@ DEFCON24 Presentation Slides: [http://www.slideshare.net/DennisMaldonado5/sticky
 
 Video demo of stickyKeysSlayer can be found here: [https://www.youtube.com/watch?v=Jy4hg4a1FYI](https://www.youtube.com/watch?v=Jy4hg4a1FYI)
 
-
 Dependencies:
 ----------------
 * imagemagick
@@ -26,7 +25,7 @@ Dependencies:
 All packages exist in the Kali repositories:
 
     apt-get update
-    
+
     apt-get -y install imagemagick xdotool parallel bc
 
 Docker:
@@ -60,8 +59,6 @@ echo 192.168.0.1 > hosts.txt
 docker run --rm -it --name sticky-keys-slayer --net=host -v `pwd`/hosts.txt:/tmp/hosts.txt -v `pwd`/pics:/tmp/foo/ sticky-keys-slayer -o /tmp/pics /tmp/hosts.txt
 ```
 
-
-	
 To Do:
 ----------------
 * Detection of missed boxes (boxes to which we do not obtain a screenshot)

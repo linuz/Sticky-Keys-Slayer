@@ -172,7 +172,7 @@ function screenshot {
 function testBlack {
 	local IMAGE=$1
 	local RETVAR=$2
-	local BLACK=$(convert $IMAGE -format %c histogram:info:- | grep "\#000000 " | cut -d : -f 1 | tr -d ' ')
+	local BLACK=$(convert $IMAGE -format %c histogram:info:- | grep "\#000000* " | cut -d : -f 1 | tr -d ' ')
 	if [ -z "$BLACK" ]
 	then
 		local BLACK=0

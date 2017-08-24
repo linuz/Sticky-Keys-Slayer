@@ -25,10 +25,40 @@ Dependencies:
 All packages exist in the Kali repositories:
 
     apt-get update
-    
+
     apt-get -y install imagemagick xdotool parallel bc
-	
-	
+
+Docker:
+-------
+
+In some situations, running this tool within Docker may be advantageous.  To do so, first build it:
+
+```
+docker build -t sticky-keys-slayer .
+```
+
+Then run the container, passing in necessary arguments to `stickyKeysSlayer.sh`:
+
+```
+docker run --rm -it --name sticky-keys-slayer --net=host sticky-keys-slayer -o /tmp/pics <target>
+```
+
+If you'd like to save the screenshots of vulnerable systems:
+
+```
+mkdir pics
+docker run --rm -it --name sticky-keys-slayer --net=host -v `pwd`/pics:/tmp/foo/ sticky-keys-slayer -o /tmp/pics <target>
+```
+
+If you'd like to pass in a list of hosts to run and save the screenshots
+
+```
+mkdir pics
+# put some hosts in hosts.txt
+echo 192.168.0.1 > hosts.txt
+docker run --rm -it --name sticky-keys-slayer --net=host -v `pwd`/hosts.txt:/tmp/hosts.txt -v `pwd`/pics:/tmp/foo/ sticky-keys-slayer -o /tmp/pics /tmp/hosts.txt
+```
+
 To Do:
 ----------------
 * Detection of missed boxes (boxes to which we do not obtain a screenshot)

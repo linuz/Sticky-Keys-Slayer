@@ -183,8 +183,8 @@ function testBlack {
 function sendKeyStrokes {
 	isAlive $pid
 	local targetWindow=$2
-	echoOutput "Attempting to trigger displayswitch.exe backdoor"
-	xdotool key --window "$targetWindow" super+p
+	#echoOutput "Attempting to trigger displayswitch.exe backdoor"
+	#xdotool key --window "$targetWindow" super+p
 	echoOutput "Attempting to trigger utilman.exe backdoor"
 	xdotool key --window "$targetWindow" super+u
 	echoOutput "Attempting to trigger sethc.exe backdoor"

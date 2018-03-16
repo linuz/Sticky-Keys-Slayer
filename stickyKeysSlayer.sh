@@ -300,7 +300,8 @@ function scanHost {
 	kill $pid
 }
 
-export DISPLAY=:0
+# Need to fix this to be distro-independent
+export DISPLAY=:1
 OPTIND=1
 while getopts ":vj:t:o:h" opt; do
 	case $opt in
